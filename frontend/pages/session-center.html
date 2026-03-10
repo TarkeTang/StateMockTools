@@ -88,17 +88,6 @@
             <div class="btn-group">
                 <button class="btn btn-primary" id="connectDisconnectButton">连接</button>
             </div>
-
-            <!-- 周期发送配置 -->
-            <div class="periodic-send-config" style="margin-top:20px;padding-top:15px;border-top:1px solid #334155;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                    <h4 style="margin:0;color:#E2E8F0;font-size:14px;">周期发送</h4>
-                    <button class="btn btn-sm btn-primary" id="addPeriodicTaskBtn" style="padding:4px 12px;font-size:12px;">+ 添加任务</button>
-                </div>
-                <div id="periodicTaskList" style="max-height:200px;overflow-y:auto;">
-                    <div style="color:#64748B;font-size:13px;text-align:center;padding:20px;">暂无周期发送任务，点击右上角添加</div>
-                </div>
-            </div>
         </div>
 
         <!-- 右侧消息区域 -->
@@ -118,10 +107,6 @@
                 <div class="protocol-template">
                     <select id="protocolTemplate" class="protocol-select">
                         <option value="">选择协议模板</option>
-                        <option value="heartbeat">心跳协议</option>
-                        <option value="status">状态上报协议</option>
-                        <option value="control">控制命令协议</option>
-                        <option value="data">数据传输协议</option>
                     </select>
                 </div>
                 <div class="sequence-numbers">
@@ -583,12 +568,36 @@
             }
         });
 
+        // 协议模板选择事件 - 加载协议结构
+        document.getElementById('protocolTemplate').addEventListener('change', function() {
+            const protocolId = this.value;
+            if (!protocolId) {
+                document.getElementById('message-input').value = '';
+                return;
+            }
+
+            // 获取协议详情，填充协议结构到输入框
+            fetch(`http://localhost:8000/api/protocols/${protocolId}`)
+                .then(response => response.ok ? response.json() : null)
+                .then(protocol => {
+                    if (protocol && protocol.structure) {
+                        document.getElementById('message-input').value = protocol.structure;
+                        adjustInputHeight('message-input');
+                        checkInput();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载协议结构失败:', error);
+                });
+        });
+
         // 初始化
         loadSessions();
         checkInput();
 
         // ====== 设备类型字典映射 ======
         let deviceTypeDict = {};
+        let currentDeviceType = '';
 
         // 加载设备类型字典
         function loadDeviceTypeDictionary() {
@@ -608,10 +617,39 @@
             return deviceTypeDict[code]?.name || code;
         }
 
+        // 加载协议模板（根据设备类型）
+        function loadProtocolTemplates(deviceType) {
+            if (!deviceType) {
+                console.log('设备类型为空，不加载协议模板');
+                return;
+            }
+
+            // 从后端获取该设备类型的协议列表
+            fetch(`http://localhost:8000/api/protocols/device/${deviceType}`)
+                .then(response => response.ok ? response.json() : [])
+                .then(protocols => {
+                    const select = document.getElementById('protocolTemplate');
+                    select.innerHTML = '<option value="">选择协议模板</option>';
+                    
+                    protocols.forEach(protocol => {
+                        const option = document.createElement('option');
+                        option.value = protocol.id;
+                        option.textContent = protocol.name;
+                        select.appendChild(option);
+                    });
+                    console.log('协议模板加载完成:', protocols.length, '个');
+                })
+                .catch(error => {
+                    console.error('加载协议模板失败:', error);
+                    const select = document.getElementById('protocolTemplate');
+                    select.innerHTML = '<option value="">选择协议模板</option>';
+                });
+        }
+
         // 加载设备类型字典
         loadDeviceTypeDictionary();
 
-        // 修改 showSessionDetails 函数以使用字典映射
+        // 修改 showSessionDetails 函数以使用字典映射和加载协议模板
         const originalShowSessionDetails = showSessionDetails;
         showSessionDetails = function(session) {
             originalShowSessionDetails(session);
@@ -620,6 +658,12 @@
             const deviceType = session.device_type || '未知';
             const deviceTypeName = getDeviceTypeName(deviceType);
             document.getElementById('deviceType').value = deviceTypeName;
+            
+            // 保存当前设备类型
+            currentDeviceType = deviceType;
+            
+            // 加载该设备类型的协议模板
+            setTimeout(() => loadProtocolTemplates(deviceType), 100);
         };
     </script>
 </body>
