@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时会话系统</title>
+    <link rel="stylesheet" href="static/css/common.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li class="active"><span>💬</span><span>会话中心</span></li>
+                <li><span>📱</span><span>设备管理</span></li>
+                <li><span>🔗</span><span>会话管理</span></li>
+                <li><span>📋</span><span>协议管理</span></li>
+                <li><span>🤖</span><span>自动化测试</span></li>
+                <li><span>⚙️</span><span>系统设置</span></li>
+            </ul>
+        </div>
+        
+        <!-- 右侧内容区域 -->
+        <div class="content-panel">
+            <div class="content-header">
+                <h3>系统首页</h3>
+                <div>
+                    <span id="connection-status">未连接</span>
+                </div>
+            </div>
+            
+            <div class="messages" style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <h2>欢迎使用实时会话系统</h2>
+                <p style="margin-top: 20px; color: #666;">请从左侧菜单选择一个功能模块</p>
+                <div style="margin-top: 40px; display: flex; gap: 20px;">
+                    <div style="text-align: center; padding: 20px; background-color: #FFFFFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); width: 150px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">💬</div>
+                        <div>会话中心</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background-color: #FFFFFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); width: 150px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📱</div>
+                        <div>设备管理</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background-color: #FFFFFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); width: 150px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🔗</div>
+                        <div>会话管理</div>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background-color: #FFFFFF; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); width: 150px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">📋</div>
+                        <div>协议管理</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/js/common.js"></script>
+</body>
+</html>

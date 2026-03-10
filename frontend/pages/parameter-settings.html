@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>参数设置 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+    <style>
+        .parameter-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        /* 左侧参数列表 */
+        .parameter-sidebar {
+            width: 350px;
+            background-color: #1E293B;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .parameter-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .parameter-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .parameter-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .parameter-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .parameter-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left-color: #3B82F6;
+        }
+
+        .parameter-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left-color: #3B82F6;
+        }
+
+        .parameter-item.disabled {
+            opacity: 0.5;
+        }
+
+        .parameter-info {
+            flex: 1;
+        }
+
+        .parameter-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #E2E8F0;
+            margin-bottom: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .parameter-desc {
+            font-size: 12px;
+            color: #94A3B8;
+        }
+
+        .parameter-type {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-left: 8px;
+        }
+
+        .type-timestamp { background-color: rgba(59, 130, 246, 0.3); color: #60A5FA; }
+        .type-datetime { background-color: rgba(16, 185, 129, 0.3); color: #34D399; }
+        .type-custom { background-color: rgba(245, 158, 11, 0.3); color: #FBBF24; }
+        .type-random { background-color: rgba(139, 92, 246, 0.3); color: #A78BFA; }
+        .type-uuid { background-color: rgba(236, 72, 153, 0.3); color: #F472B6; }
+
+        /* 右侧参数详情 */
+        .parameter-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .details-header {
+            padding: 16px 24px;
+            background-color: #1E293B;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .details-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .details-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .details-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #CBD5E1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #334155;
+            color: #E2E8F0;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .form-group .hint {
+            margin-top: 4px;
+            font-size: 12px;
+            color: #64748B;
+        }
+
+        .enabled-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .enabled-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .test-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #334155;
+        }
+
+        .test-section h4 {
+            margin: 0 0 16px 0;
+            color: #E2E8F0;
+            font-size: 14px;
+        }
+
+        .test-result {
+            margin-top: 16px;
+            padding: 16px;
+            background-color: #0F172A;
+            border: 1px solid #334155;
+            border-radius: 4px;
+        }
+
+        .test-result pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: #E2E8F0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .test-result .original {
+            color: #94A3B8;
+            margin-bottom: 12px;
+        }
+
+        .test-result .replaced {
+            color: #34D399;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #64748B;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><span>💬</span><span>会话中心</span></li>
+                <li><span>📱</span><span>设备管理</span></li>
+                <li><span>🔗</span><span>会话管理</span></li>
+                <li><span>📋</span><span>协议管理</span></li>
+                <li><span>🤖</span><span>自动化测试</span></li>
+                <li class="has-submenu active">
+                    <div class="menu-header" onclick="toggleSubmenu(this)">
+                        <span>⚙️</span><span>系统设置</span>
+                        <span class="toggle-icon">▶</span>
+                    </div>
+                    <ul class="submenu">
+                        <li class="active" onclick="navigateTo('/pages/parameter-settings.html')">参数设置</li>
+                        <li onclick="navigateTo('/pages/scheduled-task.html')">周期任务</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 参数设置页面 -->
+        <div class="parameter-container">
+            <!-- 左侧参数列表 -->
+            <div class="parameter-sidebar">
+                <div class="parameter-header">
+                    <h3>参数列表</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showCreateModal()">新建参数</button>
+                </div>
+                <div class="parameter-list" id="parameterList">
+                    <div class="empty-state">
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧参数详情 -->
+            <div class="parameter-details">
+                <div class="details-header">
+                    <h3 id="detailTitle">参数详情</h3>
+                    <div class="details-actions">
+                        <button class="btn btn-sm btn-primary" onclick="showEditModal()" id="editBtn" disabled>编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteParameter()" id="deleteBtn" disabled>删除</button>
+                    </div>
+                </div>
+                <div class="details-content" id="detailsContent">
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>请选择一个参数查看详情</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+    <script>
+        let parameters = [];
+        let selectedParameterId = null;
+
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadParameters();
+        });
+
+        // 加载参数列表
+        function loadParameters() {
+            fetch('http://localhost:8000/api/parameters')
+                .then(response => response.json())
+                .then(data => {
+                    parameters = data;
+                    renderParameterList();
+                })
+                .catch(error => {
+                    console.error('加载参数失败:', error);
+                    document.getElementById('parameterList').innerHTML = `
+                        <div class="empty-state"><p>加载失败</p></div>
+                    `;
+                });
+        }
+
+        // 渲染参数列表
+        function renderParameterList() {
+            const listEl = document.getElementById('parameterList');
+            
+            if (parameters.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><p>暂无参数</p></div>';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            parameters.forEach(param => {
+                const itemEl = document.createElement('div');
+                itemEl.className = `parameter-item ${!param.enabled ? 'disabled' : ''} ${param.id === selectedParameterId ? 'active' : ''}`;
+                itemEl.onclick = () => selectParameter(param.id);
+
+                const typeClass = `type-${param.param_type.toLowerCase()}`;
+                itemEl.innerHTML = `
+                    <div class="parameter-info">
+                        <div class="parameter-name">${param.name}</div>
+                        <div class="parameter-desc">${param.description || '无描述'}</div>
+                    </div>
+                    <span class="parameter-type ${typeClass}">${param.param_type}</span>
+                `;
+                listEl.appendChild(itemEl);
+            });
+        }
+
+        // 选择参数
+        function selectParameter(id) {
+            selectedParameterId = id;
+            const param = parameters.find(p => p.id === id);
+            if (param) {
+                renderParameterDetails(param);
+                renderParameterList();
+            }
+        }
+
+        // 渲染参数详情
+        function renderParameterDetails(param) {
+            const contentEl = document.getElementById('detailsContent');
+            const detailTitle = document.getElementById('detailTitle');
+            
+            detailTitle.textContent = `参数详情 - ${param.name}`;
+            document.getElementById('editBtn').disabled = false;
+            document.getElementById('deleteBtn').disabled = false;
+
+            contentEl.innerHTML = `
+                <div class="enabled-toggle">
+                    <input type="checkbox" id="paramEnabled" ${param.enabled ? 'checked' : ''} onchange="toggleEnabled(${param.id}, this.checked)">
+                    <label for="paramEnabled" style="margin:0;color:#CBD5E1;">启用此参数</label>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>参数名称</label>
+                        <input type="text" value="${param.name}" disabled>
+                        <div class="hint">在消息中使用 ${param.name} 引用此参数</div>
+                    </div>
+                    <div class="form-group">
+                        <label>参数类型</label>
+                        <input type="text" value="${param.param_type}" disabled>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>格式</label>
+                        <input type="text" value="${param.format || '-'}" disabled>
+                        <div class="hint">时间戳：timestamp/timestamp_s；时间：yyyy-MM-dd HH:mm:ss</div>
+                    </div>
+                    <div class="form-group">
+                        <label>值/范围</label>
+                        <input type="text" value="${param.value || '-'}" disabled>
+                        <div class="hint">自定义值或随机范围：1-100 或 a,b,c</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea disabled>${param.description || '无描述'}</textarea>
+                </div>
+
+                <div class="test-section">
+                    <h4>测试参数替换</h4>
+                    <div class="form-group">
+                        <label>输入包含参数的消息</label>
+                        <textarea id="testContent" placeholder="例如：${'${timestamp}'} - 测试消息">${param.name} - 测试消息</textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="testReplacement()" style="margin-top:10px;">测试替换</button>
+                    <div class="test-result" id="testResult" style="display:none;">
+                        <div class="original"><strong>原始内容：</strong><pre id="originalContent"></pre></div>
+                        <div class="replaced"><strong>替换后：</strong><pre id="replacedContent"></pre></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 切换启用状态
+        function toggleEnabled(id, enabled) {
+            fetch(`http://localhost:8000/api/parameters/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: enabled })
+            })
+            .then(response => {
+                if (response.ok) {
+                    const param = parameters.find(p => p.id === id);
+                    if (param) param.enabled = enabled;
+                    renderParameterList();
+                    showNotification(enabled ? '参数已启用' : '参数已禁用', 'success');
+                }
+            })
+            .catch(error => {
+                showNotification('操作失败', 'error');
+            });
+        }
+
+        // 测试替换
+        function testReplacement() {
+            const content = document.getElementById('testContent').value;
+            fetch('http://localhost:8000/api/parameters/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('originalContent').textContent = data.original;
+                document.getElementById('replacedContent').textContent = data.replaced;
+                document.getElementById('testResult').style.display = 'block';
+            })
+            .catch(error => {
+                showNotification('测试失败：' + error.message, 'error');
+            });
+        }
+
+        // 显示创建弹窗
+        function showCreateModal() {
+            showModal('新建参数', {}, function(data) {
+                if (!data) return;
+                
+                fetch('http://localhost:8000/api/parameters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('参数创建成功', 'success');
+                        loadParameters();
+                    } else {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                })
+                .catch(error => {
+                    showNotification('创建失败：' + (error.detail || error.message), 'error');
+                });
+            });
+        }
+
+        // 显示编辑弹窗
+        function showEditModal() {
+            if (!selectedParameterId) return;
+            const param = parameters.find(p => p.id === selectedParameterId);
+            if (!param) return;
+
+            showModal('编辑参数', param, function(data) {
+                if (!data) return;
+                
+                fetch(`http://localhost:8000/api/parameters/${selectedParameterId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('参数更新成功', 'success');
+                        loadParameters();
+                        selectParameter(selectedParameterId);
+                    } else {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                })
+                .catch(error => {
+                    showNotification('更新失败：' + (error.detail || error.message), 'error');
+                });
+            });
+        }
+
+        // 删除参数
+        function deleteParameter() {
+            if (!selectedParameterId) return;
+            
+            if (!confirm('确定要删除此参数吗？')) return;
+
+            fetch(`http://localhost:8000/api/parameters/${selectedParameterId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('参数删除成功', 'success');
+                    selectedParameterId = null;
+                    document.getElementById('detailTitle').textContent = '参数详情';
+                    document.getElementById('detailsContent').innerHTML = `
+                        <div class="empty-state">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <p>请选择一个参数查看详情</p>
+                        </div>
+                    `;
+                    document.getElementById('editBtn').disabled = true;
+                    document.getElementById('deleteBtn').disabled = true;
+                    loadParameters();
+                }
+            })
+            .catch(error => {
+                showNotification('删除失败：' + error.message, 'error');
+            });
+        }
+
+        // 通用弹窗函数
+        function showModal(title, data, callback) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;';
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1E293B;border-radius:8px;padding:24px;min-width:500px;max-width:90%;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = title;
+            titleEl.style.cssText = 'margin:0 0 20px 0;color:#E2E8F0;font-size:16px;';
+            modal.appendChild(titleEl);
+
+            // 参数名称
+            const nameRow = document.createElement('div');
+            nameRow.className = 'form-group';
+            nameRow.style.cssText = 'margin-bottom:16px;';
+            nameRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">参数名称 *</label>
+                <input type="text" id="modalName" value="${data.name || ''}" placeholder="\${timestamp}" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;font-family:monospace;">
+                <div class="hint" style="margin-top:4px;color:#64748B;font-size:12px;">必须以 $ 开头，以 } 结尾，如：\${timestamp}</div>
+            `;
+            modal.appendChild(nameRow);
+
+            // 参数类型
+            const typeRow = document.createElement('div');
+            typeRow.className = 'form-group';
+            typeRow.style.cssText = 'margin-bottom:16px;';
+            typeRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">参数类型 *</label>
+                <select id="modalType" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">
+                    <option value="timestamp" ${data.param_type === 'timestamp' ? 'selected' : ''}>timestamp - 时间戳（毫秒）</option>
+                    <option value="timestamp_s" ${data.param_type === 'timestamp_s' ? 'selected' : ''}>timestamp_s - 时间戳（秒）</option>
+                    <option value="datetime" ${data.param_type === 'datetime' ? 'selected' : ''}>datetime - 日期时间</option>
+                    <option value="custom" ${data.param_type === 'custom' ? 'selected' : ''}>custom - 自定义固定值</option>
+                    <option value="random" ${data.param_type === 'random' ? 'selected' : ''}>random - 随机值</option>
+                    <option value="uuid" ${data.param_type === 'uuid' ? 'selected' : ''}>uuid - UUID</option>
+                </select>
+            `;
+            modal.appendChild(typeRow);
+
+            // 格式
+            const formatRow = document.createElement('div');
+            formatRow.className = 'form-group';
+            formatRow.style.cssText = 'margin-bottom:16px;';
+            formatRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">格式</label>
+                <input type="text" id="modalFormat" value="${data.format || ''}" placeholder="yyyy-MM-dd HH:mm:ss" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">
+                <div class="hint" style="margin-top:4px;color:#64748B;font-size:12px;">时间格式：yyyy-MM-dd HH:mm:ss；随机范围：1-100 或 a,b,c</div>
+            `;
+            modal.appendChild(formatRow);
+
+            // 值
+            const valueRow = document.createElement('div');
+            valueRow.className = 'form-group';
+            valueRow.style.cssText = 'margin-bottom:16px;';
+            valueRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">值/范围</label>
+                <input type="text" id="modalValue" value="${data.value || ''}" placeholder="" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">
+            `;
+            modal.appendChild(valueRow);
+
+            // 描述
+            const descRow = document.createElement('div');
+            descRow.className = 'form-group';
+            descRow.style.cssText = 'margin-bottom:20px;';
+            descRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">描述</label>
+                <textarea id="modalDesc" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;min-height:80px;">${data.description || ''}</textarea>
+            `;
+            modal.appendChild(descRow);
+
+            // 按钮组
+            const btnGroup = document.createElement('div');
+            btnGroup.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.onclick = () => { document.body.removeChild(overlay); document.body.removeChild(modal); };
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '确定';
+            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.onclick = () => {
+                const nameInput = document.getElementById('modalName').value.trim();
+                if (!nameInput) {
+                    showNotification('请输入参数名称', 'warning');
+                    return;
+                }
+                if (!nameInput.startsWith('${') || !nameInput.endsWith('}')) {
+                    showNotification('参数名称必须以 ${ 开头，以 } 结尾', 'warning');
+                    return;
+                }
+
+                const formData = {
+                    name: nameInput,
+                    param_type: document.getElementById('modalType').value,
+                    format: document.getElementById('modalFormat').value.trim(),
+                    value: document.getElementById('modalValue').value.trim(),
+                    description: document.getElementById('modalDesc').value.trim(),
+                    enabled: data.enabled !== undefined ? data.enabled : true
+                };
+                callback(formData);
+                document.body.removeChild(overlay);
+                document.body.removeChild(modal);
+            };
+
+            btnGroup.appendChild(cancelBtn);
+            btnGroup.appendChild(confirmBtn);
+            modal.appendChild(btnGroup);
+
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+            document.getElementById('modalName').focus();
+        }
+    </script>
+</body>
+</html>

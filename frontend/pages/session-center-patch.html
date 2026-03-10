@@ -1,0 +1,124 @@
+<!-- 会话中心页面优化补丁 - 在 </script> 前插入以下代码 -->
+<script>
+// 此补丁需要手动添加到 session-center.html 文件中
+// 添加位置：在原有的 </script> 结束标签之前
+
+// 1. 在全局变量区域添加（约第 122 行）：
+/*
+let deviceTypeDict = {};       // 设备类型字典
+let sendSequenceNum = 0;       // 发送序列号
+let responseSequenceNum = 0;   // 响应序列号
+*/
+
+// 2. 在页面初始化添加（约第 131 行）：
+/*
+document.addEventListener('DOMContentLoaded', function() {
+    loadDictionaries();
+});
+*/
+
+// 3. 添加新函数（在任何现有函数之前）：
+/*
+function loadDictionaries() {
+    fetch('http://localhost:8000/api/protocols/dictionary/device-types')
+        .then(response => response.ok ? response.json() : {})
+        .then(data => {
+            deviceTypeDict = data;
+            console.log('设备类型字典加载完成:', data);
+        })
+        .catch(error => {
+            console.error('加载设备类型字典失败:', error);
+        });
+}
+
+function getDeviceTypeName(code) {
+    return deviceTypeDict[code]?.name || code;
+}
+
+function loadProtocolTemplates() {
+    const deviceTypeInput = document.getElementById('deviceType').value;
+    if (!deviceTypeInput || deviceTypeInput === '未知') return;
+
+    let deviceTypeCode = deviceTypeInput;
+    for (const [code, info] of Object.entries(deviceTypeDict)) {
+        if (info.name === deviceTypeInput) {
+            deviceTypeCode = code;
+            break;
+        }
+    }
+
+    fetch(`http://localhost:8000/api/protocols/device/${deviceTypeCode}`)
+        .then(response => response.ok ? response.json() : [])
+        .then(protocols => {
+            const select = document.getElementById('protocolTemplate');
+            select.innerHTML = '<option value="">选择协议模板</option>';
+            protocols.forEach(protocol => {
+                const option = document.createElement('option');
+                option.value = protocol.id;
+                option.textContent = protocol.name;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('加载协议模板失败:', error);
+        });
+}
+
+function updateSendSequence() {
+    sendSequenceNum++;
+    document.getElementById('sendSequence').value = sendSequenceNum;
+}
+
+function updateResponseSequence() {
+    responseSequenceNum++;
+    document.getElementById('responseSequence').value = responseSequenceNum;
+}
+*/
+
+// 4. 修改 showSessionDetails 函数中的设备类型显示部分：
+/*
+// 原代码：
+document.getElementById('deviceType').value = session.device_type || '未知';
+
+// 替换为：
+const deviceType = session.device_type || '未知';
+const deviceTypeName = getDeviceTypeName(deviceType);
+document.getElementById('deviceType').value = deviceTypeName;
+// 加载协议模板
+setTimeout(loadProtocolTemplates, 100);
+*/
+
+// 5. 修改协议模板选择事件：
+/*
+// 原代码：
+fillProtocolTemplate('protocolTemplate', 'protocolType', 'message-input', 'sendCode', 'receiveCode');
+
+// 替换为：
+const protocolId = this.value;
+if (!protocolId) {
+    document.getElementById('message-input').value = '';
+    return;
+}
+fetch(`http://localhost:8000/api/protocols/${protocolId}`)
+    .then(response => response.ok ? response.json() : null)
+    .then(protocol => {
+        if (protocol && protocol.structure) {
+            document.getElementById('message-input').value = protocol.structure;
+            adjustInputHeight('message-input');
+            checkInput();
+        }
+    });
+*/
+
+// 6. 在 handleMessage 函数中添加序列号更新：
+/*
+// 在 case 'message': 分支中添加：
+if (message.direction === 'received') {
+    addMessage('received', message.content);
+    updateResponseSequence();
+} else if (message.direction === 'sent') {
+    addMessage('sent', message.content);
+    updateSendSequence();
+}
+*/
+</script>

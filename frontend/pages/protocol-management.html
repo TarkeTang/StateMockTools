@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>协议管理 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+    <style>
+        .protocol-management-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        /* 左侧协议列表 */
+        .protocol-sidebar {
+            width: 300px;
+            background-color: #1E293B;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .protocol-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .protocol-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .protocol-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .import-export-actions {
+            margin-top: 10px;
+            padding: 0 20px 10px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .protocol-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+        
+        /* 自定义滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1E293B;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        
+        .device-type-group {
+            margin-bottom: 10px;
+        }
+        
+        .device-type-header {
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .device-type-header:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .device-type-content {
+            display: none;
+            margin-left: 20px;
+        }
+        
+        .device-type-content.expanded {
+            display: block;
+        }
+        
+        .protocol-type-group {
+            margin-bottom: 5px;
+        }
+        
+        .protocol-type-header {
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #CBD5E1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .protocol-type-header:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .protocol-type-content {
+            display: none;
+            margin-left: 16px;
+        }
+        
+        .protocol-type-content.expanded {
+            display: block;
+        }
+        
+        .toggle-icon {
+            font-size: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .toggle-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .protocol-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .protocol-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left-color: #3B82F6;
+        }
+        
+        .protocol-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left-color: #3B82F6;
+        }
+        
+        .protocol-info {
+            flex: 1;
+        }
+        
+        .protocol-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #E2E8F0;
+            margin-bottom: 4px;
+        }
+        
+        .protocol-details {
+            font-size: 12px;
+            color: #94A3B8;
+        }
+        
+        /* 右侧协议详情 */
+        .protocol-details-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .details-header {
+            padding: 16px 24px;
+            background-color: #1E293B;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .details-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .details-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .details-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(100% - 60px);
+        }
+        
+        .detail-section {
+            margin-bottom: 32px;
+        }
+        
+        .detail-section h4 {
+            margin: 0 0 16px 0;
+            color: #E2E8F0;
+            font-size: 14px;
+            font-weight: 600;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group label {
+            display: inline-block;
+            width: 100px;
+            color: #CBD5E1;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #334155;
+            color: #E2E8F0;
+        }
+        
+        /* 下拉框样式 */
+        .form-group select {
+            min-width: 150px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23CBD5E1' d='M6 9L1 4h10L6 9z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 30px;
+        }
+        
+        /* 下拉框选项样式 */
+        .form-group select option {
+            background-color: #1E293B;
+            color: #E2E8F0;
+            padding: 8px 12px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .code-block {
+            background-color: #0F172A;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 16px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            color: #E2E8F0;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+        
+        .field-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        
+        .field-table th, .field-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .field-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            font-size: 13px;
+            background-color: #334155;
+            color: #E2E8F0;
+        }
+        
+        .field-input:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .field-table th {
+            background-color: #334155;
+            color: #E2E8F0;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .field-table tr:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .field-table-container {
+            margin-bottom: 16px;
+        }
+        
+        .field-actions {
+            margin-top: 12px;
+            text-align: right;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .btn-sm {
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+        
+        .btn-edit {
+            background-color: #3B82F6;
+            color: white;
+        }
+        
+        .btn-delete {
+            background-color: #EF4444;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #475569;
+            color: #E2E8F0;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #64748B;
+        }
+        
+        .btn-danger {
+            background-color: #EF4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #DC2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><span>💬</span><span>会话中心</span></li>
+                <li><span>📱</span><span>设备管理</span></li>
+                <li><span>🔗</span><span>会话管理</span></li>
+                <li class="active"><span>📋</span><span>协议管理</span></li>
+                <li><span>🤖</span><span>自动化测试</span></li>
+                <li><span>⚙️</span><span>系统设置</span></li>
+            </ul>
+        </div>
+        
+        <!-- 右侧内容区域 -->
+        <div class="content-panel">
+            <div class="protocol-management-container">
+                <!-- 左侧协议列表 -->
+                <div class="protocol-sidebar">
+                    <div class="protocol-header">
+                        <h3>协议列表</h3>
+                        <div class="protocol-actions">
+                            <button class="btn btn-sm btn-primary">新建协议</button>
+                        </div>
+                    </div>
+                    
+                    <div class="import-export-actions">
+                        <button class="btn btn-sm btn-secondary" id="exportProtocols">导出协议</button>
+                        <button class="btn btn-sm btn-secondary" id="importProtocols">导入协议</button>
+                        <input type="file" id="importFile" accept=".xlsx,.xls" style="display: none;">
+                    </div>
+                    
+                    <div class="protocol-list">
+                        <!-- 上级系统 -->
+                        <div class="device-type-group">
+                            <div class="device-type-header" onclick="toggleDeviceType(this)">
+                                <span class="toggle-icon">▶</span>
+                                <span>上级系统</span>
+                            </div>
+                            <div class="device-type-content">
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>系统消息</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item active" onclick="selectProtocol('SUPERIOR-001')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">心跳协议</div>
+                                                <div class="protocol-details">系统消息</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>监视类型指令</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item" onclick="selectProtocol('SUPERIOR-002')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">状态上报协议</div>
+                                                <div class="protocol-details">监视类型指令</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 区域主机 -->
+                        <div class="device-type-group">
+                            <div class="device-type-header" onclick="toggleDeviceType(this)">
+                                <span class="toggle-icon">▶</span>
+                                <span>区域主机</span>
+                            </div>
+                            <div class="device-type-content">
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>远程控制类型指令</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item" onclick="selectProtocol('AREA-001')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">设备控制协议</div>
+                                                <div class="protocol-details">远程控制类型指令</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 边缘节点 -->
+                        <div class="device-type-group">
+                            <div class="device-type-header" onclick="toggleDeviceType(this)">
+                                <span class="toggle-icon">▶</span>
+                                <span>边缘节点</span>
+                            </div>
+                            <div class="device-type-content">
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>监视类型指令</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item" onclick="selectProtocol('EDGE-001')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">数据传输协议</div>
+                                                <div class="protocol-details">监视类型指令</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>巡视告警确认</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item" onclick="selectProtocol('EDGE-002')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">事件上报协议</div>
+                                                <div class="protocol-details">巡视告警确认</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 无人机 -->
+                        <div class="device-type-group">
+                            <div class="device-type-header" onclick="toggleDeviceType(this)">
+                                <span class="toggle-icon">▶</span>
+                                <span>无人机</span>
+                            </div>
+                            <div class="device-type-content">
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>远程控制类型指令</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item" onclick="selectProtocol('DRONE-001')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">飞行控制协议</div>
+                                                <div class="protocol-details">远程控制类型指令</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="protocol-type-group">
+                                    <div class="protocol-type-header" onclick="toggleProtocolType(this)">
+                                        <span class="toggle-icon">▶</span>
+                                        <span>任务管理类型指令</span>
+                                    </div>
+                                    <div class="protocol-type-content">
+                                        <div class="protocol-item" onclick="selectProtocol('DRONE-002')">
+                                            <div class="protocol-info">
+                                                <div class="protocol-name">任务执行协议</div>
+                                                <div class="protocol-details">任务管理类型指令</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧协议详情 -->
+                <div class="protocol-details-container">
+                    <div class="details-header">
+                        <h3>协议详情 - 心跳协议</h3>
+                        <div class="details-actions">
+                            <button class="btn btn-primary">编辑</button>
+                            <button class="btn btn-danger">删除</button>
+                        </div>
+                    </div>
+                    
+                    <div class="details-content">
+                        <div class="detail-section">
+                            <h4>基本信息</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>协议名称</label>
+                                    <input type="text" value="心跳协议" id="protocolName" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>协议类型</label>
+                                    <select id="protocolType" disabled>
+                                        <option value="system_message" selected>系统消息</option>
+                                        <option value="remote_control">远程控制类型指令</option>
+                                        <option value="task_management">任务管理类型指令</option>
+                                        <option value="model_management">模型管理类型指令</option>
+                                        <option value="monitoring">监视类型指令</option>
+                                        <option value="reliability_statistics">可靠性指标统计</option>
+                                        <option value="patrol_confirmation">巡视确认同步信息</option>
+                                        <option value="patrol_alert_confirmation">巡视告警确认</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>适用设备类型</label>
+                                    <select id="deviceType" disabled>
+                                        <option value="Superior" selected>上级系统</option>
+                                        <option value="Area">区域主机</option>
+                                        <option value="Edge">边缘节点</option>
+                                        <option value="Robot">机器人</option>
+                                        <option value="Drone">无人机</option>
+                                        <option value="Algo">算法管理平台</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>交互对象</label>
+                                    <select id="interactionObject" disabled>
+                                        <option value="Superior">上级系统</option>
+                                        <option value="Area">区域主机</option>
+                                        <option value="Edge" selected>边缘节点</option>
+                                        <option value="Robot">机器人</option>
+                                        <option value="Drone">无人机</option>
+                                        <option value="Algo">算法管理平台</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>协议版本</label>
+                                    <input type="text" value="1.0" id="protocolVersion" disabled>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>字段说明</h4>
+                            <div class="field-table-container">
+                                <table class="field-table">
+                                    <thead>
+                                        <tr>
+                                            <th>字段名</th>
+                                            <th>类型</th>
+                                            <th>长度</th>
+                                            <th>必填</th>
+                                            <th>说明</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>SendCode</td>
+                                            <td>String</td>
+                                            <td>10</td>
+                                            <td>是</td>
+                                            <td>发送方标识</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>ReceiveCode</td>
+                                            <td>String</td>
+                                            <td>10</td>
+                                            <td>是</td>
+                                            <td>接收方标识</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Type</td>
+                                            <td>String</td>
+                                            <td>20</td>
+                                            <td>是</td>
+                                            <td>消息类型</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Code</td>
+                                            <td>String</td>
+                                            <td>10</td>
+                                            <td>是</td>
+                                            <td>消息编码</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Command</td>
+                                            <td>String</td>
+                                            <td>20</td>
+                                            <td>是</td>
+                                            <td>命令类型</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Time</td>
+                                            <td>String</td>
+                                            <td>20</td>
+                                            <td>是</td>
+                                            <td>时间戳</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Items</td>
+                                            <td>Object</td>
+                                            <td>-</td>
+                                            <td>否</td>
+                                            <td>消息项</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-edit">编辑</button>
+                                                    <button class="btn btn-sm btn-delete">删除</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="field-actions">
+                                    <button class="btn btn-primary">添加字段</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>协议结构</h4>
+                            <div class="code-block">
+&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;Superior&gt;
+    &lt;SendCode&gt;Drone01&lt;/SendCode&gt;
+    &lt;ReceiveCode&gt;Edge01&lt;/ReceiveCode&gt;
+    &lt;Type&gt;heartbeat&lt;/Type&gt;
+    &lt;Code&gt;0000&lt;/Code&gt;
+    &lt;Command&gt;heartbeat&lt;/Command&gt;
+    &lt;Time&gt;2026-03-07 12:00:00&lt;/Time&gt;
+    &lt;Items&gt;
+        &lt;Item timestamp="2026-03-07 12:00:00" status="online"/&gt;
+    &lt;/Items&gt;
+&lt;/Superior&gt;
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4>协议说明</h4>
+                            <div class="form-group">
+                                <textarea id="protocolDescription" disabled>心跳协议用于设备与服务器之间保持连接，定期发送心跳消息以确认设备在线状态。协议采用XML格式，包含发送方标识、接收方标识、消息类型、消息编码、命令类型、时间戳和消息项等字段。</textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button class="btn btn-secondary">取消</button>
+                            <button class="btn btn-primary">保存修改</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建协议弹窗 -->
+    <div id="createProtocolModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="modal-content" style="background-color: #1E293B; border-radius: 8px; padding: 24px; width: 90%; max-width: 800px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: #E2E8F0; font-size: 18px; font-weight: 600;">新建协议</h3>
+                <button id="closeModal" style="background: none; border: none; color: #94A3B8; font-size: 20px; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div class="detail-section">
+                <h4>基本信息</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>协议名称</label>
+                        <input type="text" id="newProtocolName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>协议类型</label>
+                        <select id="newProtocolType" required>
+                            <option value="system_message">系统消息</option>
+                            <option value="remote_control">远程控制类型指令</option>
+                            <option value="task_management">任务管理类型指令</option>
+                            <option value="model_management">模型管理类型指令</option>
+                            <option value="monitoring">监视类型指令</option>
+                            <option value="reliability_statistics">可靠性指标统计</option>
+                            <option value="patrol_confirmation">巡视确认同步信息</option>
+                            <option value="patrol_alert_confirmation">巡视告警确认</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>适用设备类型</label>
+                        <select id="newDeviceType" required>
+                            <option value="Superior">上级系统</option>
+                            <option value="Area">区域主机</option>
+                            <option value="Edge">边缘节点</option>
+                            <option value="Robot">机器人</option>
+                            <option value="Drone">无人机</option>
+                            <option value="Algo">算法管理平台</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>交互对象</label>
+                        <select id="newInteractionObject" required>
+                            <option value="Superior">上级系统</option>
+                            <option value="Area">区域主机</option>
+                            <option value="Edge">边缘节点</option>
+                            <option value="Robot">机器人</option>
+                            <option value="Drone">无人机</option>
+                            <option value="Algo">算法管理平台</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>协议版本</label>
+                        <input type="text" value="1.0" id="newProtocolVersion" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>协议说明</h4>
+                <div class="form-group">
+                    <textarea id="newProtocolDescription" placeholder="请输入协议说明"></textarea>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>字段说明</h4>
+                <div class="field-table-container">
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th>字段名</th>
+                                <th>类型</th>
+                                <th>长度</th>
+                                <th>必填</th>
+                                <th>说明</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="newProtocolFields">
+                            <!-- 字段将通过JavaScript动态添加 -->
+                        </tbody>
+                    </table>
+                    <div class="field-actions">
+                        <button id="addField" class="btn btn-primary">添加字段</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-section">
+                <h4>协议结构</h4>
+                <div class="form-group">
+                    <textarea id="newProtocolStructure" placeholder="请输入协议结构，例如XML格式" style="min-height: 200px;"></textarea>
+                </div>
+            </div>
+            
+            <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 30px;">
+                <button id="cancelCreate" class="btn btn-secondary">取消</button>
+                <button id="saveProtocol" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        // 页面加载时获取协议数据和字典数据
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDictionaries();
+            loadProtocols();
+        });
+        
+        // 字典数据
+        let protocolTypes = [];
+        let deviceTypes = [];
+        
+        // 加载字典数据
+        function loadDictionaries() {
+            // 获取协议类型
+            fetch('http://localhost:8000/api/dictionaries/type/protocol_type')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('加载协议类型失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    protocolTypes = data;
+                })
+                .catch(error => {
+                    console.error('加载协议类型失败:', error);
+                    // 使用默认数据
+                    protocolTypes = [
+                        { code: 'mqtt', name: 'MQTT' },
+                        { code: 'http', name: 'HTTP' },
+                        { code: 'websocket', name: 'WebSocket' },
+                        { code: 'modbus', name: 'Modbus' }
+                    ];
+                });
+            
+            // 获取设备类型
+            fetch('http://localhost:8000/api/dictionaries/type/device_type')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('加载设备类型失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    deviceTypes = data;
+                })
+                .catch(error => {
+                    console.error('加载设备类型失败:', error);
+                    // 使用默认数据
+                    deviceTypes = [
+                        { code: 'drone', name: '无人机' },
+                        { code: 'robot', name: '机器人' },
+                    ];
+                });
+        }
+        
+        // 加载协议数据
+        function loadProtocols() {
+            // 从后端API获取数据
+            fetch('http://localhost:8000/api/protocols')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('加载协议数据失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 后端直接返回协议列表数组
+                    renderProtocolList(data);
+                })
+                .catch(error => {
+                    console.error('加载协议数据失败:', error);
+                    // 错误时显示空数据
+                    renderProtocolList([]);
+                });
+        }
+        
+        // 渲染协议列表
+        function renderProtocolList(protocols) {
+            const protocolList = document.querySelector('.protocol-list');
+            protocolList.innerHTML = '';
+            
+            // 按设备类型分组
+            const groupedProtocols = protocols.reduce((groups, protocol) => {
+                const deviceType = protocol.device_type;
+                if (!groups[deviceType]) {
+                    groups[deviceType] = [];
+                }
+                groups[deviceType].push(protocol);
+                return groups;
+            }, {});
+            
+            // 设备类型映射
+            const deviceTypeMap = {
+                'Superior': '上级系统',
+                'Area': '区域主机',
+                'Edge': '边缘节点',
+                'Robot': '机器人',
+                'Drone': '无人机',
+                'Algo': '算法管理平台'
+            };
+            
+            // 协议类型映射
+            const protocolTypeMap = {
+                'system_message': '系统消息',
+                'remote_control': '远程控制类型指令',
+                'task_management': '任务管理类型指令',
+                'model_management': '模型管理类型指令',
+                'monitoring': '监视类型指令',
+                'reliability_statistics': '可靠性指标统计',
+                'patrol_confirmation': '巡视确认同步信息',
+                'patrol_alert_confirmation': '巡视告警确认'
+            };
+            
+            // 渲染每个设备类型组
+            Object.entries(groupedProtocols).forEach(([deviceTypeKey, deviceProtocols]) => {
+                const deviceTypeName = deviceTypeMap[deviceTypeKey] || deviceTypeKey;
+                
+                const deviceGroup = document.createElement('div');
+                deviceGroup.className = 'device-type-group';
+                
+                const deviceHeader = document.createElement('div');
+                deviceHeader.className = 'device-type-header';
+                deviceHeader.onclick = function() {
+                    toggleDeviceType(this);
+                };
+                deviceHeader.innerHTML = `
+                    <span class="toggle-icon">▶</span>
+                    <span>${deviceTypeName}</span>
+                `;
+                deviceGroup.appendChild(deviceHeader);
+                
+                const deviceContent = document.createElement('div');
+                deviceContent.className = 'device-type-content';
+                
+                // 按协议类型分组
+                const protocolTypeGroups = deviceProtocols.reduce((groups, protocol) => {
+                    const protocolType = protocol.type;
+                    if (!groups[protocolType]) {
+                        groups[protocolType] = [];
+                    }
+                    groups[protocolType].push(protocol);
+                    return groups;
+                }, {});
+                
+                // 渲染每个协议类型组
+                Object.entries(protocolTypeGroups).forEach(([protocolTypeKey, typeProtocols]) => {
+                    const protocolTypeName = protocolTypeMap[protocolTypeKey] || protocolTypeKey;
+                    
+                    const protocolGroup = document.createElement('div');
+                    protocolGroup.className = 'protocol-type-group';
+                    
+                    const protocolHeader = document.createElement('div');
+                    protocolHeader.className = 'protocol-type-header';
+                    protocolHeader.onclick = function() {
+                        toggleProtocolType(this);
+                    };
+                    protocolHeader.innerHTML = `
+                        <span class="toggle-icon">▶</span>
+                        <span>${protocolTypeName}</span>
+                    `;
+                    protocolGroup.appendChild(protocolHeader);
+                    
+                    const protocolContent = document.createElement('div');
+                    protocolContent.className = 'protocol-type-content';
+                    
+                    typeProtocols.forEach(protocol => {
+                        const protocolItem = document.createElement('div');
+                        protocolItem.className = 'protocol-item';
+                        protocolItem.onclick = function() {
+                            selectProtocol(protocol.id);
+                        };
+                        
+                        protocolItem.innerHTML = `
+                            <div class="protocol-info">
+                                <div class="protocol-name">${protocol.name}</div>
+                                <div class="protocol-details">${protocolTypeName}</div>
+                            </div>
+                        `;
+                        
+                        protocolContent.appendChild(protocolItem);
+                    });
+                    
+                    protocolGroup.appendChild(protocolContent);
+                    deviceContent.appendChild(protocolGroup);
+                });
+                
+                deviceGroup.appendChild(deviceContent);
+                protocolList.appendChild(deviceGroup);
+            });
+        }
+        
+        // 选择协议
+        function selectProtocol(protocolId) {
+            // 移除所有协议项的active类
+            const protocolItems = document.querySelectorAll('.protocol-item');
+            protocolItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 添加当前协议项的active类
+            event.currentTarget.classList.add('active');
+            
+            // 更新协议详情标题
+            const protocolName = event.currentTarget.querySelector('.protocol-name').textContent;
+            document.querySelector('.details-header h3').textContent = `协议详情 - ${protocolName}`;
+            
+            // 从后端API获取协议详情
+            fetch(`http://localhost:8000/api/protocols/${protocolId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('获取协议详情失败');
+                    }
+                    return response.json();
+                })
+                .then(protocol => {
+                    // 更新协议信息
+                    document.getElementById('protocolName').value = protocol.name;
+                    document.getElementById('protocolType').value = protocol.type;
+                    document.getElementById('deviceType').value = protocol.device_type;
+                    document.getElementById('interactionObject').value = protocol.interaction_object;
+                    document.getElementById('protocolVersion').value = protocol.version;
+                    document.getElementById('protocolDescription').value = protocol.description;
+                    
+                    // 更新协议结构
+                    const codeBlock = document.querySelector('.code-block');
+                    codeBlock.textContent = formatXml(protocol.structure);
+                    
+                    // 更新字段说明
+                    const tbody = document.querySelector('.field-table tbody');
+                    tbody.innerHTML = '';
+                    if (protocol.fields && Array.isArray(protocol.fields)) {
+                        protocol.fields.forEach(field => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${field.name}</td>
+                                <td>${field.type}</td>
+                                <td>${field.length}</td>
+                                <td>${field.required}</td>
+                                <td>${field.description}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-edit">编辑</button>
+                                        <button class="btn btn-sm btn-delete">删除</button>
+                                    </div>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('获取协议详情失败:', error);
+                    // 使用默认数据
+                    document.getElementById('protocolName').value = protocolName;
+                });
+        }
+        
+        // 格式化XML
+        function formatXml(xml) {
+            let formatted = '';
+            let indent = '';
+            const tab = '    ';
+            xml.split(/></).forEach((node, index) => {
+                if (node.match(/^\/?\w/)) {
+                    if (node.match(/^\//)) {
+                        indent = indent.substring(tab.length);
+                    }
+                    formatted += indent + '<' + node + '>' + '\n';
+                    if (!node.match(/^\//) && !node.match(/\/>$/)) {
+                        indent += tab;
+                    }
+                } else {
+                    formatted += indent + '<' + node + '>' + '\n';
+                }
+            });
+            return formatted;
+        }
+        
+        // 切换设备类型展开/收起
+        function toggleDeviceType(element) {
+            const content = element.nextElementSibling;
+            const icon = element.querySelector('.toggle-icon');
+            content.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+        
+        // 切换协议类型展开/收起
+        function toggleProtocolType(element) {
+            const content = element.nextElementSibling;
+            const icon = element.querySelector('.toggle-icon');
+            content.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+        
+        // 编辑模式切换
+        function toggleEditMode() {
+            const isEditing = document.getElementById('protocolName').disabled === false;
+            const formFields = document.querySelectorAll('input, select, textarea');
+            formFields.forEach(field => {
+                field.disabled = isEditing;
+            });
+            
+            // 控制字段操作按钮的显示
+            const actionButtons = document.querySelectorAll('.action-buttons');
+            const addFieldButton = document.querySelector('.field-actions .btn-primary');
+            
+            if (isEditing) {
+                document.querySelector('.details-actions .btn-primary').textContent = '编辑';
+                document.querySelector('.form-actions').style.display = 'none';
+                // 隐藏字段操作按钮
+                actionButtons.forEach(button => {
+                    button.style.display = 'none';
+                });
+                addFieldButton.style.display = 'none';
+            } else {
+                document.querySelector('.details-actions .btn-primary').textContent = '保存';
+                document.querySelector('.form-actions').style.display = 'flex';
+                // 显示字段操作按钮
+                actionButtons.forEach(button => {
+                    button.style.display = 'flex';
+                });
+                addFieldButton.style.display = 'inline-block';
+            }
+        }
+        
+        // 绑定编辑按钮点击事件
+        document.querySelector('.details-actions .btn-primary').addEventListener('click', toggleEditMode);
+        
+        // 初始隐藏保存/取消按钮和字段操作按钮
+        document.querySelector('.form-actions').style.display = 'none';
+        const actionButtons = document.querySelectorAll('.action-buttons');
+        const addFieldButton = document.querySelector('.field-actions .btn-primary');
+        actionButtons.forEach(button => {
+            button.style.display = 'none';
+        });
+        addFieldButton.style.display = 'none';
+        
+        // 新建协议按钮点击事件
+        document.querySelector('.protocol-actions .btn-primary').addEventListener('click', function() {
+            const modal = document.getElementById('createProtocolModal');
+            modal.style.display = 'flex';
+        });
+        
+        // 关闭弹窗
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('createProtocolModal').style.display = 'none';
+        });
+        
+        // 取消按钮点击事件
+        document.getElementById('cancelCreate').addEventListener('click', function() {
+            document.getElementById('createProtocolModal').style.display = 'none';
+        });
+        
+        // 字段管理功能
+        let fieldCounter = 0;
+        
+        // 添加字段
+        document.getElementById('addField').addEventListener('click', function() {
+            addField();
+        });
+        
+        // 添加字段函数
+        function addField(fieldData = {}) {
+            const tbody = document.getElementById('newProtocolFields');
+            const row = document.createElement('tr');
+            const fieldId = fieldCounter++;
+            
+            row.innerHTML = `
+                <td><input type="text" value="${fieldData.name || ''}" id="fieldName-${fieldId}" placeholder="字段名" class="field-input"></td>
+                <td><select id="fieldType-${fieldId}" class="field-input">
+                    <option value="String" ${fieldData.type === 'String' ? 'selected' : ''}>String</option>
+                    <option value="Number" ${fieldData.type === 'Number' ? 'selected' : ''}>Number</option>
+                    <option value="Boolean" ${fieldData.type === 'Boolean' ? 'selected' : ''}>Boolean</option>
+                    <option value="Object" ${fieldData.type === 'Object' ? 'selected' : ''}>Object</option>
+                    <option value="Array" ${fieldData.type === 'Array' ? 'selected' : ''}>Array</option>
+                </select></td>
+                <td><input type="text" value="${fieldData.length || ''}" id="fieldLength-${fieldId}" placeholder="长度" class="field-input"></td>
+                <td><select id="fieldRequired-${fieldId}" class="field-input" style="min-width: 80px;">
+                    <option value="是" ${fieldData.required === '是' ? 'selected' : ''}>是</option>
+                    <option value="否" ${fieldData.required !== '是' ? 'selected' : ''}>否</option>
+                </select></td>
+                <td><input type="text" value="${fieldData.description || ''}" id="fieldDescription-${fieldId}" placeholder="说明" class="field-input"></td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-delete" onclick="deleteField(this, ${fieldId})"><i class="fa fa-trash"></i></button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        }
+        
+        // 删除字段
+        function deleteField(button, fieldId) {
+            const row = button.closest('tr');
+            row.remove();
+        }
+        
+        // 保存协议
+        document.getElementById('saveProtocol').addEventListener('click', function() {
+            // 生成协议ID
+            function generateProtocolId() {
+                const deviceType = document.getElementById('newDeviceType').value;
+                const timestamp = Date.now().toString().slice(-6);
+                return `${deviceType.toUpperCase()}-${timestamp}`;
+            }
+            
+            // 获取表单数据
+            const protocolData = {
+                id: generateProtocolId(),
+                name: document.getElementById('newProtocolName').value.trim(),
+                type: document.getElementById('newProtocolType').value,
+                device_type: document.getElementById('newDeviceType').value,
+                interaction_object: document.getElementById('newInteractionObject').value,
+                version: document.getElementById('newProtocolVersion').value.trim(),
+                description: document.getElementById('newProtocolDescription').value.trim(),
+                structure: document.getElementById('newProtocolStructure').value.trim(),
+                fields: []
+            };
+            
+            // 收集字段信息
+            const fieldRows = document.querySelectorAll('#newProtocolFields tr');
+            fieldRows.forEach(row => {
+                const nameInput = row.querySelector('input[id^="fieldName-"]');
+                const typeSelect = row.querySelector('select[id^="fieldType-"]');
+                const lengthInput = row.querySelector('input[id^="fieldLength-"]');
+                const requiredSelect = row.querySelector('select[id^="fieldRequired-"]');
+                const descriptionInput = row.querySelector('input[id^="fieldDescription-"]');
+                
+                if (nameInput && nameInput.value.trim()) {
+                    protocolData.fields.push({
+                        name: nameInput.value.trim(),
+                        type: typeSelect.value,
+                        length: lengthInput.value.trim(),
+                        required: requiredSelect.value,
+                        description: descriptionInput.value.trim()
+                    });
+                }
+            });
+            
+            // 验证必填字段
+            if (!protocolData.name) {
+                showNotification('请输入协议名称');
+                return;
+            }
+            
+            // 调用API保存协议
+            fetch('http://localhost:8000/api/protocols', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(protocolData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('保存协议失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                showNotification('协议创建成功');
+                // 关闭弹窗
+                document.getElementById('createProtocolModal').style.display = 'none';
+                // 重新加载协议列表
+                loadProtocols();
+            })
+            .catch(error => {
+                console.error('保存协议失败:', error);
+                showNotification('保存协议失败，请重试');
+            });
+        });
+        
+        // 导出协议到Excel
+        document.getElementById('exportProtocols').addEventListener('click', function() {
+            // 调用后端导出接口
+            window.location.href = 'http://localhost:8000/api/protocols/export';
+        });
+        
+        // 导入协议按钮点击事件
+        document.getElementById('importProtocols').addEventListener('click', function() {
+            document.getElementById('importFile').click();
+        });
+        
+        // 导入文件变化事件
+        document.getElementById('importFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // 调用后端导入接口
+            fetch('http://localhost:8000/api/protocols/import', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('导入协议失败');
+                }
+                return response.json();
+            })
+            .then(data => {
+                showNotification(`导入完成：成功 ${data.success} 个，失败 ${data.failed} 个`);
+                loadProtocols();
+            })
+            .catch(error => {
+                console.error('导入协议失败:', error);
+                showNotification('导入协议失败，请重试');
+            });
+        });
+    </script>
+</body>
+</html>

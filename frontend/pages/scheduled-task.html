@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周期任务 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+    <style>
+        .task-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .task-sidebar {
+            width: 400px;
+            background-color: #1E293B;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+
+        .task-item {
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            margin-bottom: 8px;
+        }
+
+        .task-item:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left-color: #3B82F6;
+        }
+
+        .task-item.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-left-color: #3B82F6;
+        }
+
+        .task-item.disabled {
+            opacity: 0.5;
+        }
+
+        .task-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #E2E8F0;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 12px;
+            color: #94A3B8;
+            margin-bottom: 6px;
+        }
+
+        .task-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+
+        .status-running {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10B981;
+        }
+
+        .status-stopped {
+            background-color: rgba(100, 116, 139, 0.2);
+            color: #64748B;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .task-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .details-header {
+            padding: 16px 24px;
+            background-color: #1E293B;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .details-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .details-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background-color: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #E2E8F0;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94A3B8;
+        }
+
+        .info-section {
+            margin-bottom: 24px;
+        }
+
+        .info-section h4 {
+            margin: 0 0 12px 0;
+            color: #E2E8F0;
+            font-size: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 12px;
+        }
+
+        .info-label {
+            width: 100px;
+            color: #94A3B8;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #E2E8F0;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .message-preview {
+            background-color: #0F172A;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            color: #E2E8F0;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #64748B;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li><span>💬</span><span>会话中心</span></li>
+                <li><span>📱</span><span>设备管理</span></li>
+                <li><span>🔗</span><span>会话管理</span></li>
+                <li><span>📋</span><span>协议管理</span></li>
+                <li><span>🤖</span><span>自动化测试</span></li>
+                <li class="has-submenu active">
+                    <div class="menu-header" onclick="toggleSubmenu(this)">
+                        <span>⚙️</span><span>系统设置</span>
+                        <span class="toggle-icon">▶</span>
+                    </div>
+                    <ul class="submenu">
+                        <li onclick="navigateTo('/pages/parameter-settings.html')">参数设置</li>
+                        <li class="active" onclick="navigateTo('/pages/scheduled-task.html')">周期任务</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 周期任务页面 -->
+        <div class="task-container">
+            <!-- 左侧任务列表 -->
+            <div class="task-sidebar">
+                <div class="task-header">
+                    <h3>周期任务</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showCreateModal()">新建任务</button>
+                </div>
+                <div class="task-list" id="taskList">
+                    <div class="empty-state"><p>加载中...</p></div>
+                </div>
+            </div>
+
+            <!-- 右侧任务详情 -->
+            <div class="task-details">
+                <div class="details-header">
+                    <h3 id="detailTitle">任务详情</h3>
+                    <div class="details-actions" id="detailActions">
+                        <button class="btn btn-sm btn-primary" onclick="toggleTask()" id="toggleBtn" disabled>启动</button>
+                        <button class="btn btn-sm btn-secondary" onclick="showEditModal()" id="editBtn" disabled>编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTask()" id="deleteBtn" disabled>删除</button>
+                    </div>
+                </div>
+                <div class="details-content" id="detailsContent">
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20" style="width:64px;height:64px;margin-bottom:16px;opacity:0.5;">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                        </svg>
+                        <p>请选择一个任务查看详情</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+    <script>
+        let tasks = [];
+        let sessions = [];
+        let selectedTaskId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTasks();
+            loadSessions();
+        });
+
+        function loadTasks() {
+            fetch('http://localhost:8000/api/scheduled-tasks')
+                .then(response => response.json())
+                .then(data => {
+                    tasks = data;
+                    renderTaskList();
+                })
+                .catch(error => {
+                    console.error('加载任务失败:', error);
+                });
+        }
+
+        function loadSessions() {
+            fetch('http://localhost:8000/api/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    sessions = data;
+                })
+                .catch(error => {
+                    console.error('加载会话失败:', error);
+                });
+        }
+
+        function renderTaskList() {
+            const listEl = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                listEl.innerHTML = '<div class="empty-state" style="padding:40px;"><p>暂无周期任务</p></div>';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            tasks.forEach(task => {
+                const session = sessions.find(s => s.id === task.session_id);
+                const sessionName = session ? session.name : task.session_id;
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = `task-item ${!task.enabled ? 'disabled' : ''} ${task.id === selectedTaskId ? 'active' : ''}`;
+                itemEl.onclick = () => selectTask(task.id);
+
+                const statusClass = task.running ? 'status-running' : 'status-stopped';
+                const statusText = task.running ? '运行中' : '已停止';
+
+                itemEl.innerHTML = `
+                    <div class="task-name">
+                        <span>${task.name}</span>
+                        <span class="task-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="task-meta">
+                        <span>📱 ${sessionName}</span>
+                        <span>⏱ ${task.interval}秒</span>
+                        <span>▶ ${task.execution_count}次</span>
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn btn-sm ${task.running ? 'btn-secondary' : 'btn-primary'}" 
+                            onclick="event.stopPropagation(); toggleTask(${task.id})" style="padding:2px 8px;font-size:11px;">
+                            ${task.running ? '暂停' : '启动'}
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(itemEl);
+            });
+        }
+
+        function selectTask(id) {
+            selectedTaskId = id;
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                renderTaskDetails(task);
+                renderTaskList();
+            }
+        }
+
+        function renderTaskDetails(task) {
+            const session = sessions.find(s => s.id === task.session_id);
+            const sessionName = session ? session.name : task.session_id;
+            
+            document.getElementById('detailTitle').textContent = `任务详情 - ${task.name}`;
+            document.getElementById('toggleBtn').disabled = false;
+            document.getElementById('editBtn').disabled = false;
+            document.getElementById('deleteBtn').disabled = false;
+            document.getElementById('toggleBtn').textContent = task.running ? '暂停' : '启动';
+
+            const contentEl = document.getElementById('detailsContent');
+            contentEl.innerHTML = `
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:#3B82F6;">${task.execution_count}</div>
+                        <div class="stat-label">执行次数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:#10B981;">${task.interval}s</div>
+                        <div class="stat-label">周期时间</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" style="color:${task.running ? '#10B981' : '#64748B'};">
+                            ${task.running ? '运行中' : '已停止'}
+                        </div>
+                        <div class="stat-label">运行状态</div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h4>基本信息</h4>
+                    <div class="info-row">
+                        <span class="info-label">任务名称</span>
+                        <span class="info-value">${task.name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">关联会话</span>
+                        <span class="info-value">${sessionName}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">周期时间</span>
+                        <span class="info-value">${task.interval} 秒</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">启用状态</span>
+                        <span class="info-value">${task.enabled ? '✓ 已启用' : '✗ 已禁用'}</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h4>预设消息</h4>
+                    <div class="message-preview">${escapeHtml(task.message)}</div>
+                </div>
+
+                ${task.description ? `
+                <div class="info-section">
+                    <h4>任务描述</h4>
+                    <div class="info-value">${escapeHtml(task.description)}</div>
+                </div>
+                ` : ''}
+
+                ${task.last_run ? `
+                <div class="info-section">
+                    <h4>执行时间</h4>
+                    <div class="info-row">
+                        <span class="info-label">最后执行</span>
+                        <span class="info-value">${new Date(task.last_run).toLocaleString()}</span>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleTask(taskId) {
+            const id = taskId || selectedTaskId;
+            if (!id) return;
+            
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            const action = task.running ? 'stop' : 'start';
+            fetch(`http://localhost:8000/api/scheduled-tasks/${id}/${action}`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification(task.running ? '任务已暂停' : '任务已启动', 'success');
+                    loadTasks();
+                    setTimeout(() => selectTask(id), 100);
+                }
+            })
+            .catch(error => {
+                showNotification('操作失败', 'error');
+            });
+        }
+
+        function showCreateModal() {
+            showModal('新建周期任务', {}, function(data) {
+                if (!data) return;
+                
+                fetch('http://localhost:8000/api/scheduled-tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('任务创建成功', 'success');
+                        loadTasks();
+                    } else {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                })
+                .catch(error => {
+                    showNotification('创建失败：' + (error.detail || error.message), 'error');
+                });
+            });
+        }
+
+        function showEditModal() {
+            if (!selectedTaskId) return;
+            const task = tasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+
+            showModal('编辑周期任务', task, function(data) {
+                if (!data) return;
+                
+                fetch(`http://localhost:8000/api/scheduled-tasks/${selectedTaskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('任务更新成功', 'success');
+                        loadTasks();
+                        selectTask(selectedTaskId);
+                    }
+                })
+                .catch(error => {
+                    showNotification('更新失败：' + (error.detail || error.message), 'error');
+                });
+            });
+        }
+
+        function deleteTask() {
+            if (!selectedTaskId) return;
+            if (!confirm('确定要删除此任务吗？')) return;
+
+            fetch(`http://localhost:8000/api/scheduled-tasks/${selectedTaskId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('任务删除成功', 'success');
+                    selectedTaskId = null;
+                    document.getElementById('detailTitle').textContent = '任务详情';
+                    document.getElementById('detailsContent').innerHTML = `
+                        <div class="empty-state">
+                            <p>请选择一个任务查看详情</p>
+                        </div>
+                    `;
+                    document.getElementById('toggleBtn').disabled = true;
+                    document.getElementById('editBtn').disabled = true;
+                    document.getElementById('deleteBtn').disabled = true;
+                    loadTasks();
+                }
+            })
+            .catch(error => {
+                showNotification('删除失败', 'error');
+            });
+        }
+
+        function showModal(title, data, callback) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;';
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1E293B;border-radius:8px;padding:24px;min-width:500px;max-width:90%;z-index:10000;';
+
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = title;
+            titleEl.style.cssText = 'margin:0 0 20px 0;color:#E2E8F0;font-size:16px;';
+            modal.appendChild(titleEl);
+
+            // 任务名称
+            const nameRow = document.createElement('div');
+            nameRow.style.cssText = 'margin-bottom:16px;';
+            nameRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">任务名称 *</label>
+                <input type="text" id="modalName" value="${data.name || ''}" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">
+            `;
+            modal.appendChild(nameRow);
+
+            // 关联会话
+            const sessionRow = document.createElement('div');
+            sessionRow.style.cssText = 'margin-bottom:16px;';
+            sessionRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">关联会话 *</label>
+                <select id="modalSession" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">
+                    ${sessions.map(s => `<option value="${s.id}" ${data.session_id === s.id ? 'selected' : ''}>${s.name || s.id}</option>`).join('')}
+                </select>
+            `;
+            modal.appendChild(sessionRow);
+
+            // 周期时间
+            const intervalRow = document.createElement('div');
+            intervalRow.style.cssText = 'margin-bottom:16px;';
+            intervalRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">周期时间（秒）*</label>
+                <input type="number" id="modalInterval" value="${data.interval || 5}" min="1" max="86400" style="width:100%;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">
+            `;
+            modal.appendChild(intervalRow);
+
+            // 消息内容
+            const messageRow = document.createElement('div');
+            messageRow.style.cssText = 'margin-bottom:16px;';
+            messageRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">预设消息 *</label>
+                <textarea id="modalMessage" style="width:100%;min-height:120px;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-family:monospace;font-size:13px;">${data.message || ''}</textarea>
+            `;
+            modal.appendChild(messageRow);
+
+            // 描述
+            const descRow = document.createElement('div');
+            descRow.style.cssText = 'margin-bottom:20px;';
+            descRow.innerHTML = `
+                <label style="display:block;color:#94A3B8;font-size:14px;margin-bottom:6px;">描述</label>
+                <textarea id="modalDesc" style="width:100%;min-height:60px;padding:10px;border:1px solid #334155;border-radius:4px;background:#0F172A;color:#E2E8F0;font-size:14px;">${data.description || ''}</textarea>
+            `;
+            modal.appendChild(descRow);
+
+            // 按钮组
+            const btnGroup = document.createElement('div');
+            btnGroup.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '取消';
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.onclick = () => { document.body.removeChild(overlay); document.body.removeChild(modal); };
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = '确定';
+            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.onclick = () => {
+                const formData = {
+                    name: document.getElementById('modalName').value.trim(),
+                    session_id: document.getElementById('modalSession').value,
+                    interval: parseInt(document.getElementById('modalInterval').value),
+                    message: document.getElementById('modalMessage').value.trim(),
+                    description: document.getElementById('modalDesc').value.trim(),
+                    enabled: data.enabled !== undefined ? data.enabled : true
+                };
+                
+                if (!formData.name || !formData.message) {
+                    showNotification('请填写必填项', 'warning');
+                    return;
+                }
+                
+                callback(formData);
+                document.body.removeChild(overlay);
+                document.body.removeChild(modal);
+            };
+
+            btnGroup.appendChild(cancelBtn);
+            btnGroup.appendChild(confirmBtn);
+            modal.appendChild(btnGroup);
+
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+            document.getElementById('modalName').focus();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动化测试 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li onclick="navigateTo('/pages/session-center.html')"><span>💬</span><span>会话中心</span></li>
+                <li onclick="navigateTo('/pages/device-management.html')"><span>📱</span><span>设备管理</span></li>
+                <li onclick="navigateTo('/pages/session-management.html')"><span>🔗</span><span>会话管理</span></li>
+                <li onclick="navigateTo('/pages/protocol-management.html')"><span>📋</span><span>协议管理</span></li>
+                <li class="active"><span>🤖</span><span>自动化测试</span></li>
+                <li class="has-submenu">
+                    <div class="menu-header" onclick="toggleSubmenu(this)">
+                        <span>⚙️</span><span>系统设置</span>
+                        <span class="toggle-icon">▶</span>
+                    </div>
+                    <ul class="submenu">
+                        <li onclick="navigateTo('/pages/parameter-settings.html')">参数设置</li>
+                        <li onclick="navigateTo('/pages/scheduled-task.html')">周期任务</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 自动化测试页面 -->
+        <div class="content-panel">
+            <div class="automation-container">
+                <div class="automation-header">
+                    <h3>自动化测试</h3>
+                    <button class="btn btn-primary" onclick="showNotification('创建测试用例功能开发中')">新建测试用例</button>
+                </div>
+
+                <div class="test-case-list" id="testCaseList">
+                    <div style="text-align:center;padding:40px;color:#94A3B8;">
+                        自动化测试功能开发中，敬请期待...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+</body>
+</html>

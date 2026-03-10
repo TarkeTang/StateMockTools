@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会话中心 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+    <style>
+        .status.connecting {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li class="active"><span>💬</span><span>会话中心</span></li>
+                <li><span>📱</span><span>设备管理</span></li>
+                <li><span>🔗</span><span>会话管理</span></li>
+                <li><span>📋</span><span>协议管理</span></li>
+                <li><span>🤖</span><span>自动化测试</span></li>
+                <li><span>⚙️</span><span>系统设置</span></li>
+            </ul>
+        </div>
+
+        <!-- 中间配置区域 -->
+        <div class="config-panel">
+            <h3>连接配置</h3>
+
+            <div class="form-group form-group-inline">
+                <label>会话选择</label>
+                <select id="sessionSelect">
+                    <option value="">加载中...</option>
+                </select>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>会话名称</label>
+                <input type="text" id="sessionName" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>设备类型</label>
+                <input type="text" id="deviceType" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>设备 ID</label>
+                <input type="text" id="deviceId" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>协议类型</label>
+                <input type="text" id="protocolType" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>IP 地址</label>
+                <input type="text" id="ipAddress" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>端口</label>
+                <input type="text" id="port" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>发送标识</label>
+                <input type="text" id="sendCode" disabled>
+            </div>
+
+            <div class="form-group form-group-inline">
+                <label>接收标识</label>
+                <input type="text" id="receiveCode" disabled>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="connectDisconnectButton">连接</button>
+            </div>
+        </div>
+
+        <!-- 右侧消息区域 -->
+        <div class="content-panel">
+            <div class="content-header">
+                <h3>会话中心</h3>
+                <div>
+                    <span id="connection-status" class="status disconnected">未连接</span>
+                </div>
+            </div>
+
+            <div class="messages" id="messages">
+                <!-- 消息将在这里显示 -->
+            </div>
+
+            <div class="input-area">
+                <div class="protocol-template">
+                    <select id="protocolTemplate" class="protocol-select">
+                        <option value="">选择协议模板</option>
+                        <option value="heartbeat">心跳协议</option>
+                        <option value="status">状态上报协议</option>
+                        <option value="control">控制命令协议</option>
+                        <option value="data">数据传输协议</option>
+                    </select>
+                </div>
+                <div class="sequence-numbers">
+                    <input type="number" id="sendSequence" placeholder="发送序列号" class="sequence-input">
+                    <input type="number" id="responseSequence" placeholder="响应序列号" class="sequence-input">
+                </div>
+                <div class="input-container">
+                    <textarea class="input-box" id="message-input" placeholder="输入消息..."></textarea>
+                </div>
+                <button class="send-btn" id="send-button" disabled>发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+    <script>
+        let sessionWebSocket = null;
+        let connectionStatus = 'disconnected';
+        let sessions = [];
+        let currentSessionId = null;
+
+        // 建立会话连接
+        function establishSessionConnection() {
+            const sessionId = document.getElementById('sessionSelect').value;
+            if (!sessionId) {
+                addMessage('system', '请先选择一个会话');
+                return;
+            }
+
+            currentSessionId = sessionId;
+
+            // 获取会话信息用于日志
+            const ip = document.getElementById('ipAddress').value;
+            const port = document.getElementById('port').value;
+
+            // 判断是否需要强制重连
+            const forceReconnect = (connectionStatus === 'connected' || connectionStatus === 'connecting');
+
+            // 详细日志
+            console.log('[连接请求] Session ID:', sessionId);
+            console.log('[连接请求] URL:', `http://localhost:8000/api/sessions/${sessionId}/establish-connection?force=${forceReconnect}`);
+            console.log('[连接请求] 设备地址:', `${ip}:${port}`);
+            console.log('[连接请求] 当前状态:', connectionStatus, ', 强制重连:', forceReconnect);
+
+            // 先更新 UI 为连接中状态
+            updateConnectionUI('connecting');
+            addMessage('system', '正在建立连接...');
+
+            // 调用后端接口建立连接
+            fetch(`http://localhost:8000/api/sessions/${sessionId}/establish-connection?force=${forceReconnect}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log('[连接响应] 状态码:', response.status);
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            })
+            .then(data => {
+                console.log('[连接响应] 数据:', data);
+                // 只在首次连接成功时显示成功消息，重连时不显示"无需重复连接"
+                if (data.status === 'connected' && connectionStatus !== 'connecting') {
+                    addMessage('system', data.message);
+                } else if (connectionStatus === 'connecting') {
+                    // 连接中状态下收到已连接响应，显示成功消息
+                    addMessage('system', data.message);
+                }
+                // 建立 WebSocket 连接接收实时推送
+                connectSessionWebSocket(sessionId);
+            })
+            .catch(error => {
+                console.error('[连接错误]', error);
+                addMessage('system', `连接失败：${error.message}`);
+                updateConnectionUI('error');
+            });
+        }
+
+        // 连接会话 WebSocket
+        function connectSessionWebSocket(sessionId) {
+            // 关闭现有连接
+            if (sessionWebSocket) {
+                sessionWebSocket.close();
+            }
+
+            // 创建新连接
+            const wsUrl = `ws://localhost:8000/ws/session/${sessionId}`;
+            console.log('[WebSocket] 正在连接:', wsUrl);
+            sessionWebSocket = new WebSocket(wsUrl);
+
+            // 连接成功
+            sessionWebSocket.onopen = function() {
+                console.log('[WebSocket] 连接成功');
+                // WebSocket 连接成功后，状态会由后端推送的状态消息更新
+            };
+
+            // 接收消息
+            sessionWebSocket.onmessage = function(event) {
+                console.log('[WebSocket] 收到消息:', event.data);
+                try {
+                    const message = JSON.parse(event.data);
+                    handleMessage(message);
+                } catch (error) {
+                    console.error('解析消息失败:', error);
+                    addMessage('system', `解析消息失败：${error.message}`);
+                }
+            };
+
+            // 连接关闭
+            sessionWebSocket.onclose = function(event) {
+                console.log('[WebSocket] 连接关闭', {
+                    code: event.code,
+                    reason: event.reason,
+                    wasClean: event.wasClean
+                });
+            };
+
+            // 连接错误
+            sessionWebSocket.onerror = function(error) {
+                console.error('[WebSocket] 连接错误:', error);
+                // 只有在连接中且 WebSocket 未建立时才显示连接异常
+                if (connectionStatus === 'connecting') {
+                    addMessage('system', '会话连接异常，请检查设备状态');
+                    updateConnectionUI('error');
+                }
+            };
+        }
+
+        // 处理接收到的消息
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'status':
+                    // 更新连接状态
+                    updateConnectionUI(message.status);
+                    addMessage('system', message.message || `连接状态：${message.status}`);
+                    break;
+                case 'message':
+                    // 接收或发送的消息
+                    if (message.direction === 'received') {
+                        addMessage('received', message.content);
+                    } else if (message.direction === 'sent') {
+                        addMessage('sent', message.content);
+                    }
+                    break;
+                case 'error':
+                    // 错误消息
+                    addMessage('system', `错误：${message.message || message.content}`);
+                    updateConnectionUI('error');
+                    break;
+                case 'disconnected':
+                    // 设备断开连接
+                    addMessage('system', '会话已断开连接');
+                    updateConnectionUI('disconnected');
+                    break;
+                default:
+                    console.log('未知消息类型:', message.type);
+            }
+        }
+
+        // 更新连接状态 UI
+        function updateConnectionUI(status) {
+            connectionStatus = status;
+            const statusElement = document.getElementById('connection-status');
+            const connectButton = document.getElementById('connectDisconnectButton');
+            const sendButton = document.getElementById('send-button');
+
+            switch (status) {
+                case 'connected':
+                    statusElement.textContent = '已连接';
+                    statusElement.className = 'status connected';
+                    connectButton.textContent = '断开连接';
+                    connectButton.className = 'btn btn-danger';
+                    connectButton.disabled = false;
+                    sendButton.disabled = false;
+                    sendButton.classList.add('enabled');
+                    break;
+                case 'connecting':
+                    statusElement.textContent = '连接中...';
+                    statusElement.className = 'status connecting';
+                    connectButton.textContent = '连接中';
+                    connectButton.className = 'btn btn-warning';
+                    connectButton.disabled = true;
+                    sendButton.disabled = true;
+                    sendButton.classList.remove('enabled');
+                    break;
+                case 'disconnected':
+                    statusElement.textContent = '未连接';
+                    statusElement.className = 'status disconnected';
+                    connectButton.textContent = '连接';
+                    connectButton.className = 'btn btn-primary';
+                    connectButton.disabled = false;
+                    sendButton.disabled = true;
+                    sendButton.classList.remove('enabled');
+                    break;
+                case 'error':
+                    statusElement.textContent = '连接错误';
+                    statusElement.className = 'status disconnected';
+                    connectButton.textContent = '重新连接';
+                    connectButton.className = 'btn btn-warning';
+                    connectButton.disabled = false;
+                    sendButton.disabled = true;
+                    sendButton.classList.remove('enabled');
+                    break;
+            }
+        }
+
+        // 断开会话连接
+        function disconnectSessionConnection() {
+            if (!currentSessionId) {
+                return;
+            }
+
+            // 先更新 UI 为连接中状态，防止重复点击
+            updateConnectionUI('connecting');
+
+            // 调用后端接口关闭连接
+            fetch(`http://localhost:8000/api/sessions/${currentSessionId}/close-connection`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    addMessage('system', '连接已关闭');
+                    updateConnectionUI('disconnected');
+                } else {
+                    throw new Error('断开连接失败');
+                }
+            })
+            .catch(error => {
+                console.error('断开连接失败:', error);
+                addMessage('system', `断开连接失败：${error.message}`);
+                // 恢复状态
+                updateConnectionUI('error');
+            })
+            .finally(() => {
+                // 关闭 WebSocket
+                if (sessionWebSocket) {
+                    sessionWebSocket.close();
+                    sessionWebSocket = null;
+                }
+            });
+        }
+
+        // 添加消息到界面
+        function addMessage(type, content) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            if (type === 'system') {
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+                messageDiv.appendChild(contentDiv);
+            } else {
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = new Date().toLocaleTimeString();
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+
+                if (type === 'sent') {
+                    messageDiv.appendChild(contentDiv);
+                    messageDiv.appendChild(timeDiv);
+                } else {
+                    messageDiv.appendChild(timeDiv);
+                    messageDiv.appendChild(contentDiv);
+                }
+            }
+
+            messagesDiv.appendChild(messageDiv);
+
+            // 滚动到底部
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            const sendSequence = document.getElementById('sendSequence').value;
+            const responseSequence = document.getElementById('responseSequence').value;
+
+            if (!currentSessionId) {
+                addMessage('system', '请先选择会话');
+                return;
+            }
+
+            if (message && connectionStatus === 'connected') {
+                // 调用后端接口发送消息
+                fetch(`http://localhost:8000/api/sessions/${currentSessionId}/send-message?content=${encodeURIComponent(message)}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // 发送成功后，消息会通过 WebSocket 推送回来显示
+                        // 重置输入框高度
+                        input.style.height = 'auto';
+                        // 禁用发送按钮
+                        document.getElementById('send-button').disabled = true;
+                        document.getElementById('send-button').classList.remove('enabled');
+                    } else {
+                        throw new Error('发送失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('发送消息失败:', error);
+                    addMessage('system', `发送失败：${error.message}`);
+                });
+
+                // 发送后再次填充协议模板
+                setTimeout(function() {
+                    fillProtocolTemplate('protocolTemplate', 'protocolType', 'message-input', 'sendCode', 'receiveCode');
+                }, 100);
+            }
+        }
+
+        // 检查输入框内容，启用/禁用发送按钮
+        function checkInput() {
+            const input = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            if (input && sendButton) {
+                if (input.value.trim() && connectionStatus === 'connected') {
+                    sendButton.disabled = false;
+                    sendButton.classList.add('enabled');
+                } else {
+                    sendButton.disabled = true;
+                    sendButton.classList.remove('enabled');
+                }
+            }
+        }
+
+        // 加载会话列表
+        function loadSessions() {
+            fetch('http://localhost:8000/api/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    sessions = data;
+                    const sessionSelect = document.getElementById('sessionSelect');
+                    sessionSelect.innerHTML = '';
+
+                    if (sessions.length > 0) {
+                        sessions.forEach(session => {
+                            const option = document.createElement('option');
+                            option.value = session.id;
+                            option.textContent = session.name || session.id;
+                            sessionSelect.appendChild(option);
+                        });
+                        // 默认选择第一个会话
+                        sessionSelect.selectedIndex = 0;
+                        // 显示第一个会话的详细信息
+                        showSessionDetails(sessions[0]);
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = '无可用会话';
+                        sessionSelect.appendChild(option);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载会话列表失败:', error);
+                    const sessionSelect = document.getElementById('sessionSelect');
+                    sessionSelect.innerHTML = '';
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = '加载失败';
+                    sessionSelect.appendChild(option);
+
+                    // 使用模拟数据
+                    sessions = [
+                        {
+                            id: 'SESSION-001',
+                            name: '无人机 -001',
+                            device_type: '无人机',
+                            device_id: 'DEV-001',
+                            protocol_type: '边缘节点协议',
+                            ip: '192.168.1.101',
+                            port: 10011,
+                            send_code: 'Drone01',
+                            receive_code: 'Edge01'
+                        },
+                        {
+                            id: 'SESSION-002',
+                            name: '机器人 -001',
+                            device_type: '机器人',
+                            device_id: 'DEV-002',
+                            protocol_type: '机器人协议',
+                            ip: '192.168.1.102',
+                            port: 10012,
+                            send_code: 'Robot01',
+                            receive_code: 'Edge02'
+                        }
+                    ];
+
+                    sessionSelect.innerHTML = '';
+                    sessions.forEach(session => {
+                        const option = document.createElement('option');
+                        option.value = session.id;
+                        option.textContent = session.name || session.id;
+                        sessionSelect.appendChild(option);
+                    });
+                    // 默认选择第一个会话
+                    sessionSelect.selectedIndex = 0;
+                    // 显示第一个会话的详细信息
+                    showSessionDetails(sessions[0]);
+                });
+        }
+
+        // 显示会话详细信息
+        function showSessionDetails(session) {
+            document.getElementById('sessionName').value = session.name || session.id;
+            document.getElementById('deviceType').value = session.device_type || '未知';
+            document.getElementById('deviceId').value = session.device_id || '未知';
+            document.getElementById('protocolType').value = session.protocol_type || '未知';
+            document.getElementById('ipAddress').value = session.ip || '未知';
+            document.getElementById('port').value = session.port || '未知';
+            document.getElementById('sendCode').value = session.send_code || '未知';
+            document.getElementById('receiveCode').value = session.receive_code || '未知';
+        }
+
+        // 绑定事件
+        document.getElementById('connectDisconnectButton').addEventListener('click', function() {
+            if (connectionStatus === 'disconnected' || connectionStatus === 'error') {
+                // 当前未连接或错误状态，点击连接
+                establishSessionConnection();
+            } else if (connectionStatus === 'connected') {
+                // 当前已连接，点击断开
+                disconnectSessionConnection();
+            }
+            // connecting 状态时不响应点击
+        });
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        document.getElementById('message-input').addEventListener('input', function() {
+            checkInput();
+            adjustInputHeight('message-input');
+        });
+
+        // 协议模板选择事件
+        document.getElementById('protocolTemplate').addEventListener('change', function() {
+            fillProtocolTemplate('protocolTemplate', 'protocolType', 'message-input', 'sendCode', 'receiveCode');
+        });
+
+        // 会话选择事件
+        document.getElementById('sessionSelect').addEventListener('change', function() {
+            const sessionId = this.value;
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                showSessionDetails(session);
+            }
+        });
+
+        // 初始化
+        loadSessions();
+        checkInput();
+    </script>
+</body>
+</html>

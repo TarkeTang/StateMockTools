@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备管理 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li onclick="navigateTo('/pages/session-center.html')"><span>💬</span><span>会话中心</span></li>
+                <li class="active"><span>📱</span><span>设备管理</span></li>
+                <li onclick="navigateTo('/pages/session-management.html')"><span>🔗</span><span>会话管理</span></li>
+                <li onclick="navigateTo('/pages/protocol-management.html')"><span>📋</span><span>协议管理</span></li>
+                <li onclick="navigateTo('/pages/automation-test.html')"><span>🤖</span><span>自动化测试</span></li>
+                <li class="has-submenu">
+                    <div class="menu-header" onclick="toggleSubmenu(this)">
+                        <span>⚙️</span><span>系统设置</span>
+                        <span class="toggle-icon">▶</span>
+                    </div>
+                    <ul class="submenu">
+                        <li onclick="navigateTo('/pages/parameter-settings.html')">参数设置</li>
+                        <li onclick="navigateTo('/pages/scheduled-task.html')">周期任务</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 设备管理页面 -->
+        <div class="content-panel">
+            <div class="device-management-container">
+                <div class="device-header">
+                    <h3>设备列表</h3>
+                    <div class="device-actions">
+                        <button class="btn btn-primary" onclick="showNotification('添加设备功能开发中')">添加设备</button>
+                        <button class="btn btn-secondary" onclick="showNotification('导出功能开发中')">导出</button>
+                    </div>
+                </div>
+
+                <div class="search-filter">
+                    <input type="text" class="search-input" placeholder="搜索设备...">
+                    <select class="filter-select">
+                        <option value="all">所有状态</option>
+                        <option value="online">在线</option>
+                        <option value="offline">离线</option>
+                    </select>
+                </div>
+
+                <div class="device-list" id="deviceList">
+                    <div style="text-align:center;padding:40px;color:#94A3B8;">
+                        设备管理功能开发中，敬请期待...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+    <script>
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDevices();
+        });
+
+        let devices = [];
+
+        function loadDevices() {
+            fetch('http://localhost:8000/api/devices')
+                .then(response => response.json())
+                .then(data => {
+                    devices = data;
+                    renderDevices(data);
+                })
+                .catch(error => {
+                    console.error('加载设备失败:', error);
+                    document.getElementById('deviceList').innerHTML = 
+                        '<div style="text-align:center;padding:40px;color:#94A3B8;">加载失败</div>';
+                });
+        }
+
+        function renderDevices(devices) {
+            const listEl = document.getElementById('deviceList');
+            
+            if (devices.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">暂无设备，请先添加设备</div>';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            devices.forEach(device => {
+                const statusClass = device.status === 'online' ? 'online' : 'offline';
+                const statusText = device.status === 'online' ? '在线' : '离线';
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'device-item';
+                itemEl.style.cssText = 'padding:16px;background:#1E293B;border:1px solid #334155;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
+                
+                itemEl.innerHTML = `
+                    <div class="device-info">
+                        <div class="device-name" style="font-size:15px;font-weight:500;color:#E2E8F0;margin-bottom:6px;">${device.name || device.id}</div>
+                        <div class="device-meta" style="font-size:13px;color:#94A3B8;">
+                            <span style="margin-right:16px;">📱 ${device.type || '未知类型'}</span>
+                            <span style="margin-right:16px;">🌐 ${device.ip || '0.0.0.0'}:${device.port || '0'}</span>
+                            <span>📝 ${device.description || '无描述'}</span>
+                        </div>
+                    </div>
+                    <span class="device-status ${statusClass}" style="padding:4px 12px;border-radius:12px;font-size:12px;background:${device.status === 'online' ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)'};color:${device.status === 'online' ? '#10B981' : '#64748B'};">${statusText}</span>
+                `;
+                listEl.appendChild(itemEl);
+            });
+        }
+    </script>
+</body>
+</html>

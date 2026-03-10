@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会话管理 - 实时会话系统</title>
+    <link rel="stylesheet" href="../static/css/common.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar">
+            <ul>
+                <li onclick="navigateTo('/pages/session-center.html')"><span>💬</span><span>会话中心</span></li>
+                <li onclick="navigateTo('/pages/device-management.html')"><span>📱</span><span>设备管理</span></li>
+                <li class="active"><span>🔗</span><span>会话管理</span></li>
+                <li onclick="navigateTo('/pages/protocol-management.html')"><span>📋</span><span>协议管理</span></li>
+                <li onclick="navigateTo('/pages/automation-test.html')"><span>🤖</span><span>自动化测试</span></li>
+                <li class="has-submenu">
+                    <div class="menu-header" onclick="toggleSubmenu(this)">
+                        <span>⚙️</span><span>系统设置</span>
+                        <span class="toggle-icon">▶</span>
+                    </div>
+                    <ul class="submenu">
+                        <li onclick="navigateTo('/pages/parameter-settings.html')">参数设置</li>
+                        <li onclick="navigateTo('/pages/scheduled-task.html')">周期任务</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 会话管理页面 -->
+        <div class="content-panel">
+            <div class="session-management-container">
+                <div class="session-header">
+                    <h3>会话列表</h3>
+                    <button class="btn btn-primary" onclick="showNotification('创建会话功能开发中')">创建会话</button>
+                </div>
+
+                <div class="session-list" id="sessionList">
+                    <div style="text-align:center;padding:40px;color:#94A3B8;">
+                        会话管理功能开发中，敬请期待...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessions();
+        });
+
+        function loadSessions() {
+            fetch('http://localhost:8000/api/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    renderSessions(data);
+                })
+                .catch(error => {
+                    console.error('加载会话失败:', error);
+                });
+        }
+
+        function renderSessions(sessions) {
+            const listEl = document.getElementById('sessionList');
+            
+            if (sessions.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">暂无会话</div>';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            sessions.forEach(session => {
+                const statusClass = session.status === 'connected' ? 'connected' : 'disconnected';
+                const statusText = session.status === 'connected' ? '已连接' : '未连接';
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'session-item';
+                itemEl.innerHTML = `
+                    <div class="session-info">
+                        <div class="session-name">${session.name}</div>
+                        <div class="session-meta">${session.device_type} - ${session.ip}:${session.port}</div>
+                    </div>
+                    <span class="session-status ${statusClass}">${statusText}</span>
+                `;
+                listEl.appendChild(itemEl);
+            });
+        }
+    </script>
+</body>
+</html>
