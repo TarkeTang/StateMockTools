@@ -5,6 +5,248 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>设备管理 - 实时会话系统</title>
     <link rel="stylesheet" href="../static/css/common.css">
+    <style>
+        .device-management-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .device-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            background-color: #1E293B;
+            color: #E2E8F0;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            background-color: #1E293B;
+            color: #E2E8F0;
+            font-size: 14px;
+            min-width: 120px;
+        }
+
+        .device-list {
+            flex: 1;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 16px;
+            padding-right: 4px;
+        }
+
+        .device-item {
+            padding: 16px;
+            background: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .device-item:hover {
+            border-color: #3B82F6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .device-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #E2E8F0;
+        }
+
+        .device-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .device-status.online {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: #10B981;
+        }
+
+        .device-status.offline {
+            background-color: rgba(100, 116, 139, 0.2);
+            color: #64748B;
+        }
+
+        .device-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            color: #94A3B8;
+            margin-bottom: 12px;
+        }
+
+        .device-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .device-description {
+            font-size: 13px;
+            color: #64748B;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .device-item-actions {
+            display: flex;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #334155;
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-content {
+            background: #1E293B;
+            border-radius: 8px;
+            padding: 24px;
+            min-width: 500px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #E2E8F0;
+            font-size: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94A3B8;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #E2E8F0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #CBD5E1;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            background: #0F172A;
+            color: #E2E8F0;
+            font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 24px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -35,14 +277,14 @@
                 <div class="device-header">
                     <h3>设备列表</h3>
                     <div class="device-actions">
-                        <button class="btn btn-primary" onclick="showNotification('添加设备功能开发中')">添加设备</button>
-                        <button class="btn btn-secondary" onclick="showNotification('导出功能开发中')">导出</button>
+                        <button class="btn btn-primary" onclick="openAddDeviceModal()">添加设备</button>
+                        <button class="btn btn-secondary" onclick="exportDevices()">导出</button>
                     </div>
                 </div>
 
                 <div class="search-filter">
-                    <input type="text" class="search-input" placeholder="搜索设备...">
-                    <select class="filter-select">
+                    <input type="text" class="search-input" placeholder="搜索设备名称或 IP..." id="searchInput" oninput="filterDevices()">
+                    <select class="filter-select" id="statusFilter" onchange="filterDevices()">
                         <option value="all">所有状态</option>
                         <option value="online">在线</option>
                         <option value="offline">离线</option>
@@ -51,7 +293,7 @@
 
                 <div class="device-list" id="deviceList">
                     <div style="text-align:center;padding:40px;color:#94A3B8;">
-                        设备管理功能开发中，敬请期待...
+                        加载中...
                     </div>
                 </div>
             </div>
@@ -60,19 +302,22 @@
 
     <script src="../static/js/common.js"></script>
     <script>
+        let devices = [];
+        let filteredDevices = [];
+
         // 页面加载
         document.addEventListener('DOMContentLoaded', function() {
             loadDevices();
         });
 
-        let devices = [];
-
+        // 加载设备列表
         function loadDevices() {
             fetch('http://localhost:8000/api/devices')
                 .then(response => response.json())
                 .then(data => {
                     devices = data;
-                    renderDevices(data);
+                    filteredDevices = data;
+                    renderDevices();
                 })
                 .catch(error => {
                     console.error('加载设备失败:', error);
@@ -81,36 +326,218 @@
                 });
         }
 
-        function renderDevices(devices) {
+        // 渲染设备列表
+        function renderDevices() {
             const listEl = document.getElementById('deviceList');
             
-            if (devices.length === 0) {
-                listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">暂无设备，请先添加设备</div>';
+            if (filteredDevices.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">暂无设备</div>';
                 return;
             }
 
             listEl.innerHTML = '';
-            devices.forEach(device => {
+            filteredDevices.forEach(device => {
                 const statusClass = device.status === 'online' ? 'online' : 'offline';
                 const statusText = device.status === 'online' ? '在线' : '离线';
                 
                 const itemEl = document.createElement('div');
                 itemEl.className = 'device-item';
-                itemEl.style.cssText = 'padding:16px;background:#1E293B;border:1px solid #334155;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
-                
                 itemEl.innerHTML = `
-                    <div class="device-info">
-                        <div class="device-name" style="font-size:15px;font-weight:500;color:#E2E8F0;margin-bottom:6px;">${device.name || device.id}</div>
-                        <div class="device-meta" style="font-size:13px;color:#94A3B8;">
-                            <span style="margin-right:16px;">📱 ${device.type || '未知类型'}</span>
-                            <span style="margin-right:16px;">🌐 ${device.ip || '0.0.0.0'}:${device.port || '0'}</span>
-                            <span>📝 ${device.description || '无描述'}</span>
+                    <div class="device-item-header">
+                        <div class="device-name">${device.name || device.id}</div>
+                        <span class="device-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="device-meta">
+                        <div class="device-meta-item">
+                            <span>📱</span>
+                            <span>${device.type || '未知类型'}</span>
+                        </div>
+                        <div class="device-meta-item">
+                            <span>🌐</span>
+                            <span>${device.ip || '0.0.0.0'}:${device.port || '0'}</span>
                         </div>
                     </div>
-                    <span class="device-status ${statusClass}" style="padding:4px 12px;border-radius:12px;font-size:12px;background:${device.status === 'online' ? 'rgba(16,185,129,0.2)' : 'rgba(100,116,139,0.2)'};color:${device.status === 'online' ? '#10B981' : '#64748B'};">${statusText}</span>
+                    ${device.description ? `<div class="device-description">${device.description}</div>` : ''}
+                    <div class="device-item-actions">
+                        <button class="btn btn-sm btn-primary" onclick="openEditDeviceModal('${device.id}')">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteDevice('${device.id}')">删除</button>
+                    </div>
                 `;
                 listEl.appendChild(itemEl);
             });
+        }
+
+        // 筛选设备
+        function filterDevices() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            filteredDevices = devices.filter(device => {
+                const matchSearch = !searchText || 
+                    (device.name && device.name.toLowerCase().includes(searchText)) ||
+                    (device.ip && device.ip.toLowerCase().includes(searchText));
+                
+                const matchStatus = statusFilter === 'all' || device.status === statusFilter;
+
+                return matchSearch && matchStatus;
+            });
+
+            renderDevices();
+        }
+
+        // 打开添加设备弹窗
+        function openAddDeviceModal() {
+            showModal('添加设备', {}, function(deviceData) {
+                if (!deviceData) return;
+
+                fetch('http://localhost:8000/api/devices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(deviceData)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('设备添加成功', 'success');
+                        loadDevices();
+                    } else {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                })
+                .catch(error => {
+                    showNotification('添加失败：' + (error.detail || error.message), 'error');
+                });
+            });
+        }
+
+        // 打开编辑设备弹窗
+        function openEditDeviceModal(deviceId) {
+            const device = devices.find(d => d.id === deviceId);
+            if (!device) return;
+
+            showModal('编辑设备', device, function(deviceData) {
+                if (!deviceData) return;
+
+                fetch(`http://localhost:8000/api/devices/${deviceId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(deviceData)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showNotification('设备更新成功', 'success');
+                        loadDevices();
+                    } else {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                })
+                .catch(error => {
+                    showNotification('更新失败：' + (error.detail || error.message), 'error');
+                });
+            });
+        }
+
+        // 删除设备
+        function deleteDevice(deviceId) {
+            if (!confirm('确定要删除此设备吗？')) return;
+
+            fetch(`http://localhost:8000/api/devices/${deviceId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('设备删除成功', 'success');
+                    loadDevices();
+                } else {
+                    return response.json().then(err => Promise.reject(err));
+                }
+            })
+            .catch(error => {
+                showNotification('删除失败：' + error.message, 'error');
+            });
+        }
+
+        // 导出设备
+        function exportDevices() {
+            window.open('http://localhost:8000/api/devices/export', '_blank');
+        }
+
+        // 通用弹窗函数
+        function showModal(title, device, callback) {
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-content';
+
+            modal.innerHTML = `
+                <div class="modal-header">
+                    <h3>${title}</h3>
+                    <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
+                </div>
+                <div class="form-group">
+                    <label>设备名称 *</label>
+                    <input type="text" id="deviceName" value="${device.name || ''}" placeholder="请输入设备名称">
+                </div>
+                <div class="form-group">
+                    <label>设备类型 *</label>
+                    <select id="deviceType">
+                        <option value="">请选择</option>
+                        <option value="Superior" ${device.type === 'Superior' ? 'selected' : ''}>上级系统</option>
+                        <option value="Area" ${device.type === 'Area' ? 'selected' : ''}>区域主机</option>
+                        <option value="Edge" ${device.type === 'Edge' ? 'selected' : ''}>边缘节点</option>
+                        <option value="Robot" ${device.type === 'Robot' ? 'selected' : ''}>机器人</option>
+                        <option value="Drone" ${device.type === 'Drone' ? 'selected' : ''}>无人机</option>
+                        <option value="Algo" ${device.type === 'Algo' ? 'selected' : ''}>算法管理平台</option>
+                    </select>
+                </div>
+                <div class="form-row" style="display:flex;gap:16px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>IP 地址 *</label>
+                        <input type="text" id="deviceIp" value="${device.ip || ''}" placeholder="192.168.1.100">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>端口 *</label>
+                        <input type="number" id="devicePort" value="${device.port || ''}" placeholder="8080">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea id="deviceDesc" placeholder="设备描述...">${device.description || ''}</textarea>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">取消</button>
+                    <button class="btn btn-primary" onclick="saveDevice('${title}')">确定</button>
+                </div>
+            `;
+
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            // 保存设备数据
+            window.saveDevice = function(actionTitle) {
+                const name = document.getElementById('deviceName').value.trim();
+                const type = document.getElementById('deviceType').value;
+                const ip = document.getElementById('deviceIp').value.trim();
+                const port = parseInt(document.getElementById('devicePort').value);
+                const description = document.getElementById('deviceDesc').value.trim();
+
+                if (!name || !type || !ip || !port) {
+                    showNotification('请填写必填项', 'warning');
+                    return;
+                }
+
+                const deviceData = {
+                    name: name,
+                    type: type,
+                    ip: ip,
+                    port: port,
+                    description: description,
+                    status: device.status || 'offline'
+                };
+
+                callback(deviceData);
+                overlay.remove();
+            };
         }
     </script>
 </body>
